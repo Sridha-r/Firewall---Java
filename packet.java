@@ -7,6 +7,34 @@ public class Packet {
     private String protocol;
     private String direction;
 
+    public Packet() {
+        // Optional: Initialize with defaults
+        this.sourceIP = "";
+        this.destIP = "";
+        this.protocol = "";
+        this.port = 0;
+        this.direction = "";
+    }
+    public void setSourceIP(String sourceIP) {
+        this.sourceIP = sourceIP;
+    }
+
+    public void setDestIP(String destIP) {
+        this.destIP = destIP;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    public void setDirection(String direction) {
+        this.direction = direction;
+    }
+    
     public Packet(String sourceIP, String destIP, int port, String protocol,String direction) {
         this.sourceIP = sourceIP;
         this.destIP = destIP;
