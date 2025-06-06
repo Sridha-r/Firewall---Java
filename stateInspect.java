@@ -1,5 +1,9 @@
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
 public class StateInspect {
+
     public static boolean isEstablishedSession(Packet packet) {
         boolean found = false;
 
@@ -42,8 +46,8 @@ public class StateInspect {
                 "jdbc:oracle:thin:@localhost:1521:xe", "system", "dbms123"
             );
 
-            String insert = "INSERT INTO session_state (session_id,source_ip, destination_ip, protocol, port, state, direction) " +
-                            "VALUES (session_seq.NEXTVAL, ?, ?, ? ,?, 'NEW', ?)";
+            String insert = "INSERT INTO session_state (session_id, source_ip, destination_ip, protocol, port, state, direction) " +
+                            "VALUES (session_seq.NEXTVAL, ?, ?, ?, ?, 'NEW', ?)";
             PreparedStatement stmt = conn.prepareStatement(insert);
             stmt.setString(1, packet.getSourceIP());
             stmt.setString(2, packet.getDestIP());
@@ -80,24 +84,26 @@ public class StateInspect {
 
             int rows = stmt.executeUpdate();
             if (rows > 0) {
-                System.out.println("\n Session promoted to ESTABLISHED.");
+                System.out.println("\nSession promoted to ESTABLISHED.");
             } else {
-                System.out.println("\n Session not found to promote.");
+                System.out.println("\nSession not found to promote.");
             }
 
             conn.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }  public static void showEstablishedConnections() {
+    }
+
+    public static void showEstablishedConnections() {
         try {
             Connection conn = DriverManager.getConnection(
                 "jdbc:oracle:thin:@localhost:1521:xe", "system", "dbms123");
-    
+
             String sql = "SELECT * FROM session_state WHERE state = 'ESTABLISHED'";
             PreparedStatement stmt = conn.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
-    
+
             System.out.println("Established Connections:");
             while (rs.next()) {
                 System.out.println("Session ID: " + rs.getInt("session_id"));
@@ -109,10 +115,42 @@ public class StateInspect {
                 System.out.println("Last Updated: " + rs.getTimestamp("last_updated"));
                 System.out.println("----");
             }
-    
+
             conn.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
+    public static List<Packet> getStateTable() {
+        List<Packet> sessionList = new ArrayList<>();
+        try {
+            Class.forName("oracle.jdbc.driver.OracleDriver");
+            Connection conn = DriverManager.getConnection(
+                "jdbc:oracle:thin:@localhost:1521:xe", "system", "dbms123"
+            );
+
+            String sql = "SELECT * FROM session_state WHERE state = 'ESTABLISHED'";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Packet packet1 = new Packet(); // ✅ Requires no-arg constructor in Packet
+                packet1.setSourceIP(rs.getString("source_ip"));
+                packet1.setDestIP(rs.getString("destination_ip"));
+                packet1.setProtocol(rs.getString("protocol"));
+                packet1.setPort(rs.getInt("port"));
+                packet1.setDirection(rs.getString("direction"));
+                sessionList.add(packet1);
+            }
+
+            conn.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return sessionList;
+    }
+
+}
+
