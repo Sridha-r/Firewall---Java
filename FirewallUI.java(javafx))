@@ -1,0 +1,128 @@
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+public class FirewallUI extends Application {
+
+    private TextArea resultArea;
+
+    @Override
+    public void start(Stage primaryStage) {
+
+        TextField sourceIPField = new TextField();
+        sourceIPField.setPromptText("Enter Source IP");
+
+        TextField destIPField = new TextField();
+        destIPField.setPromptText("Enter Destination IP");
+
+        TextField portField = new TextField();
+        portField.setPromptText("Enter Port");
+
+        TextField protocolField = new TextField();
+        protocolField.setPromptText("Enter Protocol (TCP/UDP)");
+
+        TextField directionField = new TextField();
+        directionField.setPromptText("Enter Direction (INBOUND/OUTBOUND)");
+
+        Button submitButton = new Button("Submit Packet");
+        Button viewRulesButton = new Button("View Firewall Rules");
+        Button viewEstablishedButton = new Button("View Established Connections");
+
+        resultArea = new TextArea();
+        resultArea.setEditable(false);
+
+        submitButton.setOnAction(e -> {
+            try {
+                String sourceIP = sourceIPField.getText();
+                String destIP = destIPField.getText();
+                int port = Integer.parseInt(portField.getText());
+                String protocol = protocolField.getText();
+                String direction = directionField.getText();
+
+                Packet packet = new Packet(sourceIP, destIP, port, protocol, direction);
+                String result = FirewallQuery.processPacket(packet);
+                resultArea.setText(result);
+            } catch (Exception ex) {
+                resultArea.setText("Error: " + ex.getMessage());
+            }
+        });
+
+        viewRulesButton.setOnAction(e -> {
+            String rules = fetchFirewallRules();
+            resultArea.setText(rules);
+        });
+
+        viewEstablishedButton.setOnAction(e -> {
+            String established = fetchEstablishedConnections();
+            resultArea.setText(established);
+        });
+
+        VBox layout = new VBox(10,
+                sourceIPField, destIPField, portField, protocolField, directionField,
+                submitButton, viewRulesButton, viewEstablishedButton,
+                resultArea);
+
+        Scene scene = new Scene(layout, 500, 500);
+
+        primaryStage.setTitle("Firewall Packet Inspector");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    // Method to fetch firewall rules from DB
+    private String fetchFirewallRules() {
+        StringBuilder rules = new StringBuilder("FIREWALL RULES:\n");
+        try (Connection conn = DriverManager.getConnection(
+                "jdbc:oracle:thin:@localhost:1521:xe", "system", "dbms123");
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM firewall_rules")) {
+
+            while (rs.next()) {
+                rules.append("Source IP: ").append(rs.getString("source_ip")).append(", ")
+                     .append("Dest IP: ").append(rs.getString("destination_ip")).append(", ")
+                     .append("Port: ").append(rs.getInt("port")).append(", ")
+                     .append("Protocol: ").append(rs.getString("protocol")).append(", ")
+                     .append("Direction: ").append(rs.getString("direction")).append(", ")
+                     .append("Action: ").append(rs.getString("action")).append("\n");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error fetching rules: " + e.getMessage();
+        }
+        return rules.toString();
+    }
+
+    // Method to fetch established connections from DB
+    private String fetchEstablishedConnections() {
+        StringBuilder established = new StringBuilder("ESTABLISHED CONNECTIONS:\n");
+        String sql = "SELECT * FROM session_state WHERE state = 'ESTABLISHED'";
+        try (Connection conn = DriverManager.getConnection(
+                "jdbc:oracle:thin:@localhost:1521:xe", "system", "dbms123");
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                established.append("Session ID: ").append(rs.getInt("session_id")).append(", ")
+                           .append("Source IP: ").append(rs.getString("source_ip")).append(", ")
+                           .append("Dest IP: ").append(rs.getString("destination_ip")).append(", ")
+                           .append("Protocol: ").append(rs.getString("protocol")).append(", ")
+                           .append("Port: ").append(rs.getInt("port")).append(", ")
+                           .append("Direction: ").append(rs.getString("direction")).append("\n");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error fetching established connections: " + e.getMessage();
+        }
+        return established.toString();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
