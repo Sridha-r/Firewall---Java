@@ -17,7 +17,7 @@ public class FirewallQuery {
 
             // Connect to DB
             Connection conn = DriverManager.getConnection(
-                "jdbc:oracle:thin:@localhost:1521:xe", "system", "dbms123");
+                "jdbc:oracle:thin:@localhost:1521:xe", "your username", "password");
 
             // Prepare query
             String sql = "SELECT * FROM firewall_rules WHERE " +
